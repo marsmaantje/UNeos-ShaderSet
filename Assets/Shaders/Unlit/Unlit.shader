@@ -2,15 +2,39 @@ Shader "Unlit/Unlit"
 {
     Properties
     {
-        _MainTex ("Texture", 2D) = "white" {}
+        _TintColor("TintColor", Color) = (1,1,1,1)
+        _MainTex ("Texture", 2D) = "white" {} //scale and offset is there by default
+			
+		_MaskTexture("Mask Texture", 2D) = "white" {}
+		//alpha handling mode, either multiply alpha or alpha clip
+		[Enum(AlphaHandlingMode)] _MaskMode("Mask Mode", Float) = 0
+		//Blend mode, the render type
+		[Enum(BlendMode)] _BlendMode("Blend Mode", Float) = 0
+		//alpha cutoff
+		[Range(0,1)] _AlphaCutoff("Alpha Cutoff", Float) = 0.5
+		
+		_VertexColors("Use Vertex Colors", Float) = 1
+		
+		//sidedness
+		[Enum(Sidedness)] _Sidedness("Sidedness", Float) = 0
+	    //ZWrite
+		[Enum(ZWrite)] _ZWrite("ZWrite", Float) = 0
+			
+		_OffsetTexture("Offset Texture", 2D) = "white" {}
+		_OffsetMagnitude("Offset Magnitude", Vector) = (0,0,0,0)
+			
+		[ShaderBool]_PolarUVMapping("Polar UV Mapping", Float) = 0
+		_PolarPower("Polar Power", Float) = 1
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+		//allow both opaque and transparent
+		Tags { "RenderType" = "Opaque" }
         LOD 100
 
         Pass
         {
+			/**/
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -53,6 +77,7 @@ Shader "Unlit/Unlit"
                 return col;
             }
             ENDCG
+				/**/
         }
     }
 }
