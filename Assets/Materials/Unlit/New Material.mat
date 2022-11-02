@@ -58,9 +58,9 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 83049a48c3b502140a6c28bc96880e7f, type: 3}
-        m_Scale: {x: 1.38, y: 1}
-        m_Offset: {x: 2.34, y: 0.04}
+        m_Texture: {fileID: 2800000, guid: 41bfb2f82123e6f4a97bde96ee8e9fb3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 5.11, y: 0.04}
     - _MaskTexture:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -74,9 +74,9 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OffsetTexture:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 9f8e47e92ad7a744aba6f2d54be8cfa0, type: 3}
         m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+        m_Offset: {x: 3.39, y: -3.06}
     - _ParallaxMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -141,7 +141,7 @@ Material:
     - _MainTexScale: {r: 1, g: 1, b: 1, a: 1}
     - _MaskTextureOffset: {r: 0, g: 0, b: 0, a: 0}
     - _MaskTextureScale: {r: 1, g: 1, b: 1, a: 1}
-    - _OffsetMagnitude: {r: 0, g: 0, b: 0, a: 0}
+    - _OffsetMagnitude: {r: 0.05, g: 0.05, b: 0, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _TintColor: {r: 0.5707547, g: 0.73078877, b: 1, a: 1}
   m_BuildTextureStacks: []
