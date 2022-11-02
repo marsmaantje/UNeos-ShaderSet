@@ -29,7 +29,7 @@ Shader "Unlit/Unlit"
 		SubShader
 			{
 				//allow both opaque and transparent
-				Tags { "RenderType" = "Opaque" }
+				Tags { "RenderType" = "Transparent" }
 				LOD 100
 
 				HLSLINCLUDE
@@ -38,6 +38,8 @@ Shader "Unlit/Unlit"
 			CBUFFER_START(UnityPerMaterial)
 			float4 _TintColor;
 			float4 _MainTex_ST;
+			float4 _MaskTexture_ST;
+			float4 _OffsetTexture_ST;
 			float _MaskMode;
 			float _BlendMode;
 			float _AlphaCutoff;
@@ -68,7 +70,9 @@ Shader "Unlit/Unlit"
 				{
 					float4 position : SV_POSITION;
 					float4 color : COLOR;
-					float2 uv : TEXCOORD0;
+					float2 uvMain : TEXCOORD0;
+					float2 uvMask : TEXCOORD1;
+					float2 uvOffset : TEXCOORD2;
 				};
 			ENDHLSL
 
@@ -82,16 +86,23 @@ Shader "Unlit/Unlit"
 				{
 					VertexOutput o;
 					o.position = TransformObjectToHClip(i.position.xyz);
-					o.uv = TRANSFORM_TEX(i.uv, _MainTex);
+					o.uvMain = TRANSFORM_TEX(i.uv, _MainTex); //transform UV according to scale and offset
+					o.uvMask = TRANSFORM_TEX(i.uv, _MaskTexture); //transform UV according to scale and offset
+					o.uvOffset = TRANSFORM_TEX(i.uv, _OffsetTexture); //transform UV according to scale and offset
 					o.color = i.color;
 					return o;
 				}
 
 				float4 frag(VertexOutput i) : SV_Target
 				{
-					float2 samplePoint = i.uv;
-					float4 mainTexCol = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);
-					return mainTexCol * _TintColor;
+					float2 samplePoint = i.uvMain;
+					float2 offsetPoint = SAMPLE_TEXTURE2D(_OffsetTexture, sampler_OffsetTexture, i.uvOffset).xy;
+					offsetPoint -= 0.5;
+					offsetPoint *= 2;
+					offsetPoint *= _OffsetMagnitude.xy;
+					samplePoint += offsetPoint;
+					float4 mainTexCol = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, samplePoint);
+					return mainTexCol.a * _TintColor;
 				}
 
 				ENDHLSL
