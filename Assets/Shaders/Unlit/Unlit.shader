@@ -1,4 +1,4 @@
-Shader "Unlit/Unlit"
+Shader "Unlit/UnlitTransparent"
 {
 	Properties
 	{
@@ -7,30 +7,26 @@ Shader "Unlit/Unlit"
 
 		_MaskTexture("Mask Texture", 2D) = "white" {}
 		//alpha handling mode, either multiply alpha or alpha clip
-		[Enum(AlphaHandlingMode)] _MaskMode("Mask Mode", Float) = 0
-			//Blend mode, the render type
-			[Enum(BlendMode)] _BlendMode("Blend Mode", Float) = 0
-			//alpha cutoff
-			[Range(0,1)] _AlphaCutoff("Alpha Cutoff", Float) = 0.5
+		[Enum(MultiplyAlpha, 0, AlphaClip, 1)] _MaskMode("Mask Mode", Float) = 0
+			
+		//alpha cutoff
+		[Range(0,1)] _AlphaCutoff("Alpha Cutoff", Float) = 0.5
 
-			_VertexColors("Use Vertex Colors", Float) = 1
+		[Enum(Off, 0, On, 1)]_VertexColors("Use Vertex Colors", Float) = 1
 
-			//sidedness
-			[Enum(Sidedness)] _Sidedness("Sidedness", Float) = 0
-			//ZWrite
-			[Enum(ZWrite)] _ZWrite("ZWrite", Float) = 0
+		_OffsetTexture("Offset Texture", 2D) = "white" {}
+		_OffsetMagnitude("Offset Magnitude", Vector) = (0,0,0,0)
 
-			_OffsetTexture("Offset Texture", 2D) = "white" {}
-			_OffsetMagnitude("Offset Magnitude", Vector) = (0,0,0,0)
-
-			[ShaderBool]_PolarUVMapping("Polar UV Mapping", Float) = 0
-			_PolarPower("Polar Power", Float) = 1
+		[Enum(Off, 0, On, 1)]_PolarUVMapping("Polar UV Mapping", Float) = 0
+		_PolarPower("Polar Power", Float) = 1
 	}
 		SubShader
 			{
-				//allow both opaque and transparent
-				Tags { "RenderType" = "Transparent" }
+				//transparent rendering
+				Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
 				LOD 100
+				ZWrite Off
+				Blend SrcAlpha OneMinusSrcAlpha
 
 				HLSLINCLUDE
 				#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -41,12 +37,10 @@ Shader "Unlit/Unlit"
 			float4 _MaskTexture_ST;
 			float4 _OffsetTexture_ST;
 			float _MaskMode;
-			float _BlendMode;
 			float _AlphaCutoff;
 			float _VertexColors;
-			float _Sidedness;
-			float _ZWrite;
 			float4 _OffsetMagnitude;
+			float _PolarUVMapping;
 			float _PolarPower;
 			CBUFFER_END
 
@@ -86,6 +80,22 @@ Shader "Unlit/Unlit"
 				{
 					VertexOutput o;
 					o.position = TransformObjectToHClip(i.position.xyz);
+
+					/*
+					//if polar UV Mapping is 1, convert the point to polar coordinates
+					if (_PolarUVMapping == 1)
+					{
+						float2 uv = i.uv;
+						uv -= (0.5, 0.5);
+						uv *= 2;
+
+						float r = sqrt(uv.x * uv.x + uv.y * uv.y);
+						float o = atan2(uv.x, uv.y);
+						o.uvMain = TRANSFORM_TEX(i.uv, _MainTex);
+					}
+					else
+					*/
+					//o.uvMain = i.uv;
 					o.uvMain = TRANSFORM_TEX(i.uv, _MainTex); //transform UV according to scale and offset
 					o.uvMask = TRANSFORM_TEX(i.uv, _MaskTexture); //transform UV according to scale and offset
 					o.uvOffset = TRANSFORM_TEX(i.uv, _OffsetTexture); //transform UV according to scale and offset
@@ -95,61 +105,33 @@ Shader "Unlit/Unlit"
 
 				float4 frag(VertexOutput i) : SV_Target
 				{
-					float2 samplePoint = i.uvMain;
+					//what point of the main texture will we sample?
+					float2 samplePoint = i.uvMain + _MainTex_ST.xy;
+
+					//offset by offset texture
 					float2 offsetPoint = SAMPLE_TEXTURE2D(_OffsetTexture, sampler_OffsetTexture, i.uvOffset).xy;
 					offsetPoint -= 0.5;
 					offsetPoint *= 2;
 					offsetPoint *= _OffsetMagnitude.xy;
 					samplePoint += offsetPoint;
+
+					//sample the main texture
 					float4 mainTexCol = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, samplePoint);
-					return mainTexCol.a * _TintColor;
+					
+					//sample mask texture
+					float4 maskTexCol = SAMPLE_TEXTURE2D(_MaskTexture, sampler_MaskTexture, i.uvMask);
+					//take intensity of mask texture
+					float maskIntensity = (maskTexCol.r + maskTexCol.g + maskTexCol.b + maskTexCol.a) / 4.0;
+					
+					//if maskmode is 1, use cutoff point to floor or round the value
+					if (_MaskMode == 1)
+						maskIntensity = maskIntensity > _AlphaCutoff ? 1 : 0;
+
+					//multiply final result with tint color
+					return mainTexCol * _TintColor * maskIntensity;
 				}
 
 				ENDHLSL
-					/*
-					CGPROGRAM
-					#pragma vertex vert
-					#pragma fragment frag
-					// make fog work
-					#pragma multi_compile_fog
-
-					#include "UnityCG.cginc"
-
-					struct appdata
-					{
-						float4 vertex : POSITION;
-						float2 uv : TEXCOORD0;
-					};
-
-					struct v2f
-					{
-						float2 uv : TEXCOORD0;
-						UNITY_FOG_COORDS(1)
-						float4 vertex : SV_POSITION;
-					};
-
-					sampler2D _MainTex;
-					float4 _MainTex_ST;
-
-					v2f vert (appdata v)
-					{
-						v2f o;
-						o.vertex = UnityObjectToClipPos(v.vertex);
-						o.uv = TRANSFORM_TEX(v.uv, _MainTex);
-						UNITY_TRANSFER_FOG(o,o.vertex);
-						return o;
-					}
-
-					fixed4 frag (v2f i) : SV_Target
-					{
-						// sample the texture
-						fixed4 col = tex2D(_MainTex, i.uv);
-						// apply fog
-						UNITY_APPLY_FOG(i.fogCoord, col);
-						return col;
-					}
-					ENDCG
-						*/
 				}
 			}
 }
