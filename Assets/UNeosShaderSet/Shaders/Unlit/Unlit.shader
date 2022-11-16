@@ -81,21 +81,9 @@ Shader "Unlit/UnlitTransparent"
 					VertexOutput o;
 					o.position = TransformObjectToHClip(i.position.xyz);
 
-					/*
-					//if polar UV Mapping is 1, convert the point to polar coordinates
-					if (_PolarUVMapping == 1)
-					{
-						float2 uv = i.uv;
-						uv -= (0.5, 0.5);
-						uv *= 2;
-
-						float r = sqrt(uv.x * uv.x + uv.y * uv.y);
-						float o = atan2(uv.x, uv.y);
-						o.uvMain = TRANSFORM_TEX(i.uv, _MainTex);
-					}
-					else
-					*/
-					//o.uvMain = i.uv;
+					//TODO: figure out polar uv mapping
+					//TODO: figure out vertex colors
+					
 					o.uvMain = TRANSFORM_TEX(i.uv, _MainTex); //transform UV according to scale and offset
 					o.uvMask = TRANSFORM_TEX(i.uv, _MaskTexture); //transform UV according to scale and offset
 					o.uvOffset = TRANSFORM_TEX(i.uv, _OffsetTexture); //transform UV according to scale and offset
